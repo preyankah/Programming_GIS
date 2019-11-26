@@ -1,0 +1,111 @@
+---
+output:
+  pdf_document: default
+  word_document: default
+---
+##Introduction
+In recent years, Twitter has emerged as a popular social networking platform. It has made connecting with friends, family and strangers at a global scale, easier than ever before. In order to create a Twitter profile, a name, an email and a password is all that is required. What sets Twitter apart from other social networks is that it allows for users to share brief and quick updates. The three main numeric attributes of a twitter account are - followers, following and tweets. The groups of people who follow a particular account are its followers. Other users that an account follows are counted as following. Each posted update or a "tweet", as they are called is limited to 140 characters and the total number of a user's posts are counted as the number of tweets. 
+The brevity and its simple user interface has made twitter more user-friendly. Being such a quick and easy method of communication, it also makes it a suitable stage to for broadcasting to a large group of people. Celebrities are one such group of people who are active users, tweeting and interacting for their eager fans. Twitter has defined for itself a platform where everyone, by a sole twitter account can express themselves with 140 characters, regardless of social or geographical barriers.
+With millions of users now, Twitter has top accounts listed to be ranked highest based on the number of followers. Interestingly, all these top accounts happen to be famous in some way. Although Twitter is open and globally available, it should be noted how powerful a user with the most followers may be.
+
+##Objectives
+The goal of this study is to understand why a particular user has more followers than others while explaining the relationship with other factors that might be influencing it. 
+
+```{r, echo=FALSE, message=FALSE}
+library(mosaic)
+options(warn=-1)
+TF = read.table("TwitterData.txt",sep="\t",header=T)
+```
+
+##Data
+The data used in performing this analysis was collected from the Twitter website itself. It contains information about the top 100 Twitter accounts on the social networking service. This rank is based on Followers, which shows the Twitter users subscribed to the person’s tweets.  The Username shows the name of the profile, which is unique to the person who owns it. This column in the data also comes with the actual name of the person who owns the account. There is a description column that specifies the profession of the account owner. The number of accounts the people are subscribed to is also shown in the “Following” column. The number of tweets from the username is specified and shows how active the account really is. I figured the number alone was not too descriptive of the activity of the twitter account without knowing how long the account had actually been in use. Thus, I added an additional column to the data that shows the number of months the person has held the account for. To compute this, I manually searched every account on the list and noted the month and year the account had joined Twitter. I then calculated the number of months the account had been active by subtracting it with May of 2015. 
+
+##Methodology
+Understanding and learning about the Twitter dataset:
+The data provides the number of the number of followers a user and the number of other accounts it is following, respectively.   
+```{r}
+colnames(TF) 
+summary(TF[,c(4:7)]) # Summary of the numerical data
+```
+
+The plot below shows the number of followers of an account based on the profession of the account owner. According to the plot, Musicians seem to be dominating the top twitter accounts. 
+```{r}
+barplot(table(TF$Description), col=rainbow(n=factor(TF$Description)),main = "Visualzing the Categorical variate - Description",las=2,cex.names = 0.6,cex.axis = 0.2,ylab="Frequency")
+```
+
+
+
+##Correlating the response variable-Followers to other covariates (Following, Tweets, MonthsOnTwitter)
+In order to initiate the study, each viable variable given in the data was correlated to the number of follower. A general correlation matrix to study bivariate relationships was generated using the cor function on the data frame. This correlation matrix helps analyze the association between any two variables of interest, at once without taking into account all remaining variables. In regards to Followers, the result show that Followers show strongest positive correlation to the variable Following, while variables Tweet and MonthsOnTwitter also show low negative and positive correlations, respectively.
+
+
+```{r}
+ cor(TF[,c(4:7)]) # Correlation matrix 
+ pairs(TF[,c(4:7)])
+```
+
+To further gain confidence in the associations, each of the 3 numeric variables- following, Tweets and Number of months, was tested for association with followers using Pearson correlation through the cor.test function. Cor.test helps test for association between paired samples, returning level of significance for the correlation. 
+
+```{r}
+cor.test(x=TF$Followers,y=TF$Following) # Followers vs. Following 
+plot(TF$Followers~TF$Following,log="xy",col="blue",pch = 19,xlab="log(Following)",ylab="log(Followers)") # Correlation plot
+```
+```{r}
+cor.test(x=TF$Followers,y=TF$Tweets) #Followers vs Tweets 
+```
+```{r}
+cor.test(x=TF$Followers, TF$MonthsOnTwitter) #Followers vs. Months on Twitter
+```
+
+
+A boxplot was used to estimate the Followers variable with the categorical Description variable. It can be noted that on average Musicians, are also the ones with some of the highest number of followers. 
+```{r}
+
+par(cex.axis = 0.5)
+boxplot(log2(TF$Followers)~TF$Description,las=2,col=rainbow(factor(TF$Description)), main="Number of Follower by Description",ylab="Number of Followers (in log scale)") # Followers vs Description
+
+```
+
+
+##Model Fitting
+As seen previously, Musicians were the most popular category with accounting for highest number of Followers. When Followers is modeled in relation to Description, only 34% of the variability is explained. Thus, Description alone does not account for much of the variability.
+```{r}
+mod3 = lm(Followers~Description,data = TF)
+summary(mod3)
+```
+
+The number of tweets posted from the twitter account is added as a covariate to see if it increases the variability explained. The R^2 goes up by very little which shows that the covariate might not be too significant. This confirms our correlation findings which suggested that Tweets was not significantly associated with the number of followers.
+```{r}
+mod=lm(formula=Followers~Description+Tweets, data=TF)
+summary(mod)
+```
+
+The correlation matrix also suggested a weak correlation between followers and the months the account had existed on Twitter. As expected, adding the MonthsOnTwitter as a covariate does not increase the R-Squared significantly suggesting that length of time the user has been on Twitter makes little difference in the number of followers. Additionally, this might not be a good variable to use because a person who has had an account for the longest time may not necessarily be as active as others who have been there a shorter time period. It would have been helpful if there was information about the actual number of active days on the account.
+```{r}
+mod=lm(formula=Followers~Description+MonthsOnTwitter, data=TF)
+summary(mod)
+```
+
+Using number of followers as our response variable, a model was created using all other variables. This maximal model, with all 4 covariates against followers is then analyzed. As seen in the correlation matrix the variable - MonthsOnTwitter seems to be the least significant, followed by Tweets. This suggests, these two variables are not adding to any variance for the followers variable and it would to justified to exclude them from the further analysis to obtain the a well fitted model. However, the R-Squared indicates that the model explains quite a high amount of variability at 56%.
+```{r}
+mod=lm(formula=Followers~Following+Description + Tweets +MonthsOnTwitter,data=TF) #Maximal Model (linear)
+summary(mod)
+```
+
+
+By removing the insignificant covariates from the model, we end up with the following model. In doing so, the R-Squared now explains 54% of the variability. This is the best model for the given data as both the number of people the account follows and the description of the account holder are significant in predicting the number of followers.
+```{r}
+mod=lm(formula=Followers~Following+Description,data=TF)
+summary(mod)
+```
+
+
+```{r}
+vif(mod)
+```
+With the variance inflation factor test on the model, it is noticeable that Following and Description are collinear and add contribute equally to the variance of the response variable. This may suggest that a particular group of users are seen to have the highest number of followers given that they follow a certain number of people. 
+
+##Conclusion
+In addition to the given data, it may also be important to include specific data pertaining to factors such as day based activity and the frequency of interaction with other users on Twitter. The three variables can strengthen the analysis by actually predicting the followers based on the level of activeness. Some more descriptive variables such as popularity index of the person can also help in making the research a little more conclusive. 
+ 
+
